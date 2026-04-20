@@ -1,0 +1,12 @@
+{
+  "name": "anantam-inventory",
+  "version": "1.0.0",
+  "main": "setAdmin-2.js",
+  "scripts": {
+    "set-admin": "node setAdmin-2.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "firebase-admin": "^12.7.0"
+  }
+}
