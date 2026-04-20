@@ -347,38 +347,45 @@
       }
     };
 
-    async function completeMemberEmailLinkSignIn(){
-      try{
-        if (!isSignInWithEmailLink(auth, window.location.href)) return;
+async function completeMemberEmailLinkSignIn() {
+  try {
+    if (!isSignInWithEmailLink(auth, window.location.href)) return;
 
-        let email = localStorage.getItem('emailForSignIn');
-        if (!email) {
-          email = window.prompt('Please confirm your email address');
-          if (!email) return;
-        }
-
-        const result = await signInWithEmailLink(auth, email, window.location.href);
-
-        const name = localStorage.getItem('memberName') || 'Member';
-        const prn = localStorage.getItem('memberPrn') || '';
-        state.currentUser = result.user;
-        state.currentRole = 'member';
-        state.memberProfile = { name, prn, email };
-
-        document.getElementById('roleBadge').textContent='Member';
-        document.getElementById('roleBadge').className='badge member';
-        document.getElementById('memberGreeting').textContent = `Welcome, ${name} · PRN: ${prn}`;
-        showPage('pageMemberDash');
-        memberTab('checkout', document.querySelector('.nav-seg .seg-btn'));
-
-        localStorage.removeItem('emailForSignIn');
-        const cleanUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-      }catch(err){
-        alert('Email-link sign-in failed: ' + (err.message || 'Unknown error'));
-      }
+    let email = localStorage.getItem('emailForSignIn');
+    if (!email) {
+      email = window.prompt('Please confirm your email address');
     }
+    if (!email) return;
 
+    const result = await signInWithEmailLink(auth, email, window.location.href);
+
+    const name = localStorage.getItem('memberName') || 'Member';
+    const prn = localStorage.getItem('memberPrn') || '';
+
+    state.currentUser = result.user;
+    state.currentRole = 'member';
+    state.memberProfile = { name, prn, email };
+
+    document.getElementById('roleBadge').textContent = 'Member';
+    document.getElementById('roleBadge').className = 'badge member';
+    document.getElementById('memberGreeting').textContent = `Welcome, ${name} • PRN ${prn}`;
+
+    localStorage.removeItem('emailForSignIn');
+
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    showPage('pageMemberDash');
+    memberTab('checkout', document.querySelector('.nav-seg .seg-btn'));
+  } catch (err) {
+    let msg = 'Email-link sign-in failed.';
+    if (err.code === 'auth/invalid-action-code') {
+      msg = 'This login link is invalid, expired, or already used. Please request a new login link.';
+    }
+    alert('memberLoginAlert', msg);
+    showPage('pageMemberLogin');
+  }
+}
     function catPill(c){
       if(!c||c==='—') return '<span class="pill pill-other">—</span>';
       if(c==='Tools & Equipment') return `<span class="pill pill-tool">${c}</span>`;
