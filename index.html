@@ -222,14 +222,14 @@
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-  apiKey: "AIzaSyB-xPgj9G3u9i6HYIMg48J4BdJEgEBO8eM",
-  authDomain: "anantam-inventory.firebaseapp.com",
-  projectId: "anantam-inventory",
-  storageBucket: "anantam-inventory.firebasestorage.app",
-  messagingSenderId: "860733648459",
-  appId: "1:860733648459:web:f0c13e489c4cc0dfd227ce",
-  measurementId: "G-DY0SM0M2ZB"
-};
+      apiKey: "AIzaSyB-xPgj9G3u9i6HYIMg48J4BdJEgEBO8eM",
+      authDomain: "anantam-inventory.firebaseapp.com",
+      projectId: "anantam-inventory",
+      storageBucket: "anantam-inventory.firebasestorage.app",
+      messagingSenderId: "860733648459",
+      appId: "1:860733648459:web:f0c13e489c4cc0dfd227ce",
+      measurementId: "G-DY0SM0M2ZB"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -248,6 +248,11 @@
       const showHeader = !['pageLanding','pageAdminLogin','pageMemberLogin'].includes(id);
       document.getElementById('mainHeader').style.display = showHeader ? 'flex' : 'none';
       clearAlerts();
+
+      if(id === 'pageMemberDash' && state.currentRole === 'member' && state.memberProfile){
+        const activeBtn = document.querySelector('.nav-seg .seg-btn.active') || document.querySelector('.nav-seg .seg-btn');
+        memberTab('checkout', activeBtn);
+      }
     };
 
     function clearAlerts(){
@@ -302,9 +307,6 @@
         const cred = await signInWithEmailAndPassword(auth, email, pass);
         const token = await cred.user.getIdTokenResult(true);
 
-        console.log('UID:', cred.user.uid);
-        console.log('Claims:', token.claims);
-
         if(!token.claims.admin){
           await signOut(auth);
           return alert_('adminLoginAlert','This account is not marked as admin.');
@@ -347,45 +349,45 @@
       }
     };
 
-async function completeMemberEmailLinkSignIn() {
-  try {
-    if (!isSignInWithEmailLink(auth, window.location.href)) return;
+    async function completeMemberEmailLinkSignIn() {
+      try {
+        if (!isSignInWithEmailLink(auth, window.location.href)) return;
 
-    let email = localStorage.getItem('emailForSignIn');
-    if (!email) {
-      email = window.prompt('Please confirm your email address');
+        let email = localStorage.getItem('emailForSignIn');
+        if (!email) {
+          email = window.prompt('Please confirm your email address');
+        }
+        if (!email) return;
+
+        const result = await signInWithEmailLink(auth, email, window.location.href);
+
+        const name = localStorage.getItem('memberName') || 'Member';
+        const prn = localStorage.getItem('memberPrn') || '';
+
+        state.currentUser = result.user;
+        state.currentRole = 'member';
+        state.memberProfile = { name, prn, email };
+
+        document.getElementById('roleBadge').textContent = 'Member';
+        document.getElementById('roleBadge').className = 'badge member';
+        document.getElementById('memberGreeting').textContent = `Welcome, ${name} • PRN ${prn}`;
+
+        localStorage.removeItem('emailForSignIn');
+
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+
+        showPage('pageMemberDash');
+      } catch (err) {
+        let msg = 'Email-link sign-in failed.';
+        if (err.code === 'auth/invalid-action-code') {
+          msg = 'This login link is invalid, expired, or already used. Please request a new login link.';
+        }
+        showPage('pageMemberLogin');
+        alert_('memberLoginAlert', msg, 'err');
+      }
     }
-    if (!email) return;
 
-    const result = await signInWithEmailLink(auth, email, window.location.href);
-
-    const name = localStorage.getItem('memberName') || 'Member';
-    const prn = localStorage.getItem('memberPrn') || '';
-
-    state.currentUser = result.user;
-    state.currentRole = 'member';
-    state.memberProfile = { name, prn, email };
-
-    document.getElementById('roleBadge').textContent = 'Member';
-    document.getElementById('roleBadge').className = 'badge member';
-    document.getElementById('memberGreeting').textContent = `Welcome, ${name} • PRN ${prn}`;
-
-    localStorage.removeItem('emailForSignIn');
-
-    const cleanUrl = window.location.origin + window.location.pathname;
-    window.history.replaceState({}, document.title, cleanUrl);
-
-    showPage('pageMemberDash');
-    memberTab('checkout', document.querySelector('.nav-seg .seg-btn'));
-  } catch (err) {
-    let msg = 'Email-link sign-in failed.';
-    if (err.code === 'auth/invalid-action-code') {
-      msg = 'This login link is invalid, expired, or already used. Please request a new login link.';
-    }
-    alert('memberLoginAlert', msg);
-    showPage('pageMemberLogin');
-  }
-}
     function catPill(c){
       if(!c||c==='—') return '<span class="pill pill-other">—</span>';
       if(c==='Tools & Equipment') return `<span class="pill pill-tool">${c}</span>`;
@@ -427,6 +429,7 @@ async function completeMemberEmailLinkSignIn() {
     }
 
     window.memberTab = async function(tab, btn){
+      if(!state.memberProfile) return;
       document.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('active'));
       if(btn) btn.classList.add('active');
       const el = document.getElementById('memberTabContent');
@@ -521,7 +524,7 @@ async function completeMemberEmailLinkSignIn() {
     };
 
     window.submitReturn = async function(dtStr){
-      const sel = document.getElementById('retSelect').value;
+      const sel = document.getElementById('retSelect')?.value;
       if(!sel) return alert_('retAlert','Please select an item to return.');
       const cond = document.getElementById('retCondition').value;
       try{
@@ -531,7 +534,7 @@ async function completeMemberEmailLinkSignIn() {
           returnCondition: cond
         });
         alert_('retAlert','✓ Item returned successfully.','ok');
-        setTimeout(()=>memberTab('return', null), 1000);
+        setTimeout(()=>memberTab('return', document.querySelectorAll('.seg-btn')[1]), 1000);
       }catch(err){
         alert_('retAlert', err.message || 'Return failed.');
       }
