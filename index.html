@@ -135,7 +135,7 @@
         <div class="portal-card member-card" onclick="showPage('pageMemberLogin')">
           <div class="portal-icon">👤</div>
           <div class="portal-label" style="color:var(--success)">Member Portal</div>
-          <div class="portal-desc">Name + PRN + Email required · Email-link login</div>
+          <div class="portal-desc">Login with email link · No password needed</div>
         </div>
       </div>
     </div>
@@ -160,13 +160,13 @@
     <div class="form-wrap">
       <div class="form-card">
         <div class="form-title" style="color:var(--success)">Member Login</div>
-        <div class="form-sub">Name, PRN and email required</div>
+        <div class="form-sub">Login with email link</div>
         <div id="memberLoginAlert"></div>
         <div class="field"><label>Full Name</label><input type="text" id="memName" placeholder="Your full name"/></div>
         <div class="field"><label>PRN</label><input type="text" id="memPrn" placeholder="e.g. 12345678"/></div>
-        <div class="field"><label>Email</label><input type="email" id="memEmail" placeholder="yourname@gmail.com"/></div>
+        <div class="field"><label>Email</label><input type="email" id="memEmail" placeholder="yourname@example.com"/></div>
         <button class="btn btn-success" onclick="sendMemberLoginLink()">Send Login Link</button>
-        <div class="small-note">If the link is opened on the same device, login continues automatically; otherwise the user must confirm the same email again. [web:15]</div>
+        <div class="small-note">Open the email on the same device after the link arrives.</div>
       </div>
     </div>
   </div>
@@ -331,9 +331,6 @@
       if(!prn) return alert_('memberLoginAlert','Please enter your PRN.');
       if(!email) return alert_('memberLoginAlert','Please enter your email.');
 
-      const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
-      if(!emailRegex.test(email)) return alert_('memberLoginAlert','Please enter a valid email address.');
-
       try{
         const actionCodeSettings = {
           url: window.location.origin + window.location.pathname,
@@ -346,7 +343,7 @@
         localStorage.setItem('memberName', name);
         localStorage.setItem('memberPrn', prn);
 
-        alert_('memberLoginAlert', `Login link sent to ${email}. Open it on this device, or confirm the same email on another device.`, 'ok');
+        alert_('memberLoginAlert', `Login link sent to ${email}. Open it from your email to continue.`, 'ok');
       }catch(err){
         alert_('memberLoginAlert', err.message || 'Failed to send login link.');
       }
@@ -358,20 +355,14 @@
 
         let email = localStorage.getItem('emailForSignIn');
         if (!email) {
-          email = window.prompt('Enter the same email used for login link');
+          email = window.prompt('Please confirm your email address');
         }
         if (!email) return;
 
         const result = await signInWithEmailLink(auth, email, window.location.href);
 
-        const name = localStorage.getItem('memberName') || window.prompt('Enter your full name');
-        const prn = localStorage.getItem('memberPrn') || window.prompt('Enter your PRN');
-
-        if (!name || !prn) {
-          await signOut(auth);
-          showPage('pageMemberLogin');
-          return alert_('memberLoginAlert','Name and PRN are required to continue.');
-        }
+        const name = localStorage.getItem('memberName') || 'Member';
+        const prn = localStorage.getItem('memberPrn') || '';
 
         state.currentUser = result.user;
         state.currentRole = 'member';
